@@ -1,0 +1,92 @@
+#!/usr/bin/env ruby
+#
+# Scrapboxページ内のGyazo行を取得し、Scrapbox情報をGyazoページに書き出す
+#
+# % addgss project page
+#
+
+require 'gyazo'
+require 'json'
+require 'cgi'
+
+access_token = ENV['GYAZO_TOKEN'] # アクセストークン: .bash_profileに書いている
+gyazo = Gyazo::Client.new access_token: access_token
+
+config = {
+  project: 'GSS'
+}
+config_file = File.expand_path("~/.gss")
+if !File.exist?(config_file)
+  f = File.open(config_file,"w")
+  f.puts config.to_json
+else
+  config = JSON.parse(File.read(config_file))
+end
+
+page = ARGV[0]
+project = ARGV[1]
+project = config['project'] unless project
+if !project || !page
+  STDERR.puts "Scrapboxページ内のGyazo行を調べ、Gyazoデータに反映させる"
+  STDERR.puts "% addgss page [project]"
+  exit
+end
+
+module Gyazo
+  # Gyazo gemに登録されていないAPI追加
+  
+  class Client
+    def set_desc(image_id:, desc: desc) # descの書き換え
+      path = "/api/images/#{image_id}"
+
+      res = @conn.patch path do |req| # patchというのを使う
+        req.body = {
+          access_token: @access_token,
+          desc: desc.to_s
+        }
+        req.headers['User-Agent'] = @user_agent
+      end
+      # raise Gyazo::Error, res.body unless res.status == 200
+    end
+
+    def get_desc(image_id:) # descの取得
+      res = image image_id: image_id
+      return res[:metadata] ? res[:metadata][:desc] : ''
+    end
+  end
+end
+
+def process(gyazo, id, new_line)
+  desc = gyazo.get_desc image_id:id
+  desclines = desc.split
+  if desclines.include?(new_line)
+    STDERR.puts "Scrapbox情報はGyazoページに登録ずみです"
+    STDERR.puts "https://Gyazo.com/#{id}"
+  else
+    desclines.push(new_line)
+    gyazo.set_desc image_id:id, desc:desclines.join("\n")
+    STDERR.puts "https://Gyazo.com/#{id} にScrapboxページの情報を登録しました"
+  end
+end
+
+#
+# privateなプロジェクト読み出しのためのCookie取得
+# Cookieはsidコマンドで取得できるようにしておく
+#
+sid = `sid`.chomp
+
+#
+# Scrapboxページ読み出し
+#
+pagee = page.gsub(' ','%20')
+pagee = pagee.gsub('/','%2f')
+# pagee = CGI.escape(pagee) # "/" などをエスケープ
+
+res = `wget -q -O - --header 'cookie: connect.sid=#{sid}' \"https://scrapbox.io/api/pages/#{project}/#{pagee}/text\"`
+res.split.each { | line |
+  while line.sub!(/gyazo.com\/([0-9a-fA-F]{32})/,'') do
+    id = $1
+    new_line = "https://scrapbox.io/#{project}/#{pagee}"
+    process(gyazo, id, new_line)
+  end
+}
