@@ -5,6 +5,9 @@
 # % gss キーワード [プロジェクト]
 #
 
+# これはGreasemonkeyスクリプトでやることにする
+# ./gss.js
+
 require 'gyazo'
 require 'json'
 
