@@ -4,5 +4,5 @@
 
 GyazoのOCRデータをScrapbox検索で利用する
 
-* aaa
-* bbb
+* Gyazo検索APIを呼ぶためにTampermonkeyを利用
+* 検索のためのアクセストークンはTampermonkeyで管理
