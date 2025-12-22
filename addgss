@@ -23,18 +23,10 @@ else
   config = JSON.parse(File.read(config_file))
 end
 
-page = ARGV[0]
-project = ARGV[1]
-project = config['project'] unless project
-if !project || !page
-  STDERR.puts "Scrapboxページ内のGyazo行を調べ、Gyazoデータに反映させる"
-  STDERR.puts "% addgss page [project]"
-  exit
-end
-
+#  
+# Gyazo gemに登録されていないAPI追加
+#
 module Gyazo
-  # Gyazo gemに登録されていないAPI追加
-  
   class Client
     def set_desc(image_id:, desc: desc) # descの書き換え
       path = "/api/images/#{image_id}"
@@ -60,7 +52,7 @@ def process(gyazo, id, new_line)
   desc = gyazo.get_desc image_id:id
   desclines = desc.split
   if desclines.include?(new_line)
-    STDERR.puts "Scrapbox情報はGyazoページに登録ずみです"
+    STDERR.puts "Scrapbox情報はGyazoページ(#{id})に登録ずみです"
     STDERR.puts "https://Gyazo.com/#{id}"
   else
     desclines.push(new_line)
@@ -68,6 +60,65 @@ def process(gyazo, id, new_line)
     STDERR.puts "https://Gyazo.com/#{id} にScrapboxページの情報を登録しました"
   end
 end
+
+if !ARGV[0]
+  STDERR.puts "Scrapboxページ内のGyazo行を調べ、Gyazoデータに反映させる"
+  STDERR.puts "% addgss page [project]"
+  STDERR.puts "% addgss project.json"
+  exit
+end
+
+project = ''
+jsonfile = false
+if ARGV[0] =~ /\.json$/
+  jsonfile = ARGV[0]
+else
+  page = ARGV[0]
+  project = ARGV[1]
+  project = config['project'] unless project
+end
+
+if jsonfile
+  begin
+    json = JSON.parse(File.read(jsonfile))
+  rescue
+    STDERR.puts "#{jsonfile} not found"
+    exit
+  end
+  project = json['name']
+  lines = 0
+  json['pages'].each { |page|
+    puts page['title']
+    puts project
+    page['lines'].each { |line|
+      path = "https://scrapbox.io/#{project}/#{page['title']}".gsub(' ','%20')
+      # Scrapboxページのテキストから gyazoデータを探し、そのGyazoページのコメント(desc)を取得
+      while line.sub!(/gyazo.com\/([0-9a-f]+)/i,'') do
+        id = $1
+        puts "#{id} #{path}"
+        
+        process(gyazo, id, path)
+
+#desc = gyazo.get_desc image_id:id
+#        descs = desc.split
+#        if ! descs.include?(path)
+#          descs.push(path) # 既存のコメントにScrapboxのURLを追加
+#          newdesc = descs.join("\n")
+#          puts newdesc
+#          gyazo.set_desc image_id: id, desc: newdesc
+#          lines += 1
+#        end
+      end
+    }
+    exit if lines > 2
+  }
+else
+  puts page
+  puts project
+  exit
+end
+
+exit
 
 #
 # privateなプロジェクト読み出しのためのCookie取得
