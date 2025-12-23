@@ -1,18 +1,31 @@
 // ==UserScript==
-// @name         Call Gyazo API
+// @name         GSS - Gyazo-Scrapbox Search
 // @namespace    http://tampermonkey.net/
 // @version      2025-12-19
-// @description  try to take over the world!
-// @author       You
+// @description  Gyazo+Scrapbox Search
+// @author       Toshiyuki Masui
 // @match        https://scrapbox.io/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=example.com
 // @run-at       context-menu
 // @grant GM.xmlHttpRequest
+// @grant GM.setValue
+// @grant GM.getValue
 // ==/UserScript==
 
-// Tampermonkeyスクリプト
+//
+// 検索文字列を取得
+//
+const query = document.querySelector('.form-control').value;
 
-const GYAZO_TOKEN = "Lf_bYz-8T-QKnI2D3u6olVDeHCDnhnB0OeV5jTEtWps";
+//
+// 検索文字列が空だったりする場合GYAZO_TOKEN設定ダイアログを表示
+//
+var GYAZO_TOKEN = await GM.getValue("GYAZO_TOKEN");
+if(GYAZO_TOKEN == undefined || query == ''){
+    var s = prompt('GYAZO TOKENを入力してください');
+    if (s) GM.setValue("GYAZO_TOKEN",GYAZO_TOKEN);
+    return;
+}
 
 function gmFetch(url, options = {}) {
   if (typeof GM !== "undefined" && GM.fetch) {
@@ -38,91 +51,64 @@ function gmFetch(url, options = {}) {
   });
 }
 
-// const query = document.querySelector('.form-control').value;
-const query = 'abcdefg';
-
 const projectname = scrapbox.Project.name;
 
-// (query + ' ' + projectname);
-
-//<input type="text" class="form-control" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="" value="">
-
-/*
 const res = await gmFetch("https://api.gyazo.com/api/search?query="+projectname+'%20'+query, {
   headers: { Authorization: `Bearer ${GYAZO_TOKEN}` }
 });
 const data = await res.data();
-*/
 
-const win = window.open('', '_blank', 'width=800,height=600');
+//
+// 検索結果ウィンドウを開いて結果を表示
+//
+const win = window.open('', '_blank');
+
 const h1 = win.document.createElement('h1');
 
 win.document.body.append(h1);
 
-h1.textContent = `「${query}」検索結果 (${projectname})`;
-//alert(`「${query}」検索結果 (${projectname})`);
+h1.textContent = `「${query}」検索結果 on /${projectname}`
 
+const ul = win.document.createElement('ul');
+//const li = win.document.createElement('li');
 
-/*
-const li = win.document.createElement('li');
-win.document.append(h1,li);
+win.document.body.append(ul);
 
-const p = win.document.createElement('p');
-p.textContent = 'document.writeを使わへん例や。';
+console.log(data);
 
-win.document.append(li,p);
-*/
+data.forEach((element) => {
+    console.log(element);
 
-//win.document.body.append(h1, p);
+    var li = win.document.createElement('li');
+    ul.append(li);
 
+    var imga = win.document.createElement('a');
+    var img = win.document.createElement('img')
+    img.src = element.thumb_url;
+    imga.append(img);
+    imga.href= element.permalink_url;
+    li.append(imga);
 
-//alert(data[0].metadata.desc);
+    var ul2 = win.document.createElement('ul');
+    li.append(ul2);
 
+    element.metadata.desc.split(/\n/).forEach(
+       (s) => {
+         let m = s.match(new RegExp(`\/${projectname}\/(.*)$`));
+         if(m){
+            let page = m[1].replace(/%20/g,' ');
+            let url = `https://scrapbox.io/${projectname}/${page}`;
+            var a = win.document.createElement('a');
+            a.href = url;
+            var span = win.document.createElement('span');
+            span.textContent = page;
+            a.append(span);
+            var li2 = win.document.createElement('li');
+            li2.append(a);
+            ul2.append(li2);
 
-/*
-function get(url) {
-  return new Promise((resolve, reject) => {
-    const xhr = new GM.xmlHttpRequest();
-    xhr.open('GET', url);
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(xhr.responseText); // 成功したらレスポンステキストを解決
-      } else {
-        reject(new Error(`HTTP error! status: ${xhr.status}`)); // エラーなら拒否
-      }
-    };
-    xhr.onerror = () => {
-      reject(new Error('Network error')); // ネットワークエラーなら拒否
-    };
-    xhr.send(); // リクエスト送信
-  });
-}
-
-// async関数内で使用
-async function fetchData() {
-  try {
-    const data = await get('https://api.gyazo.com/api/images?query=yuiseki');
-    console.log(data); // 取得したデータ
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-fetchData();
-
-*/
-/*
-GM.xmlHttpRequest({
-  method: "GET",
-  url: "https://api.gyazo.com/api/images?query=yuiseki",
-  headers: {
-     Authorization: `Bearer ${GYAZO_TOKEN}`
-  },
-  onload: res => {
-    res = JSON.parse(res.responseText);
-    alert(res[1].metadata.desc);
-  }
-})
-*/
-
+         }
+       }
+    )
+});
 

@@ -110,34 +110,28 @@ if jsonfile
 #        end
       end
     }
-    exit if lines > 2
   }
 else
-  puts page
-  puts project
-  exit
+  #
+  # privateなプロジェクト読み出しのためのCookie取得
+  # Cookieはsidコマンドで取得できるようにしておく
+  #
+  sid = `sid`.chomp
+  
+  #
+  # Scrapboxページ読み出し
+  #
+  pagee = page.gsub(' ','%20')
+  pagee = pagee.gsub('/','%2f')
+  # pagee = CGI.escape(pagee) # "/" などをエスケープ
+  
+  res = `wget -q -O - --header 'cookie: connect.sid=#{sid}' \"https://scrapbox.io/api/pages/#{project}/#{pagee}/text\"`
+  res.split.each { | line |
+    while line.sub!(/gyazo.com\/([0-9a-fA-F]{32})/,'') do
+      id = $1
+      new_line = "https://scrapbox.io/#{project}/#{pagee}"
+      process(gyazo, id, new_line)
+    end
+  }
 end
 
-exit
-
-#
-# privateなプロジェクト読み出しのためのCookie取得
-# Cookieはsidコマンドで取得できるようにしておく
-#
-sid = `sid`.chomp
-
-#
-# Scrapboxページ読み出し
-#
-pagee = page.gsub(' ','%20')
-pagee = pagee.gsub('/','%2f')
-# pagee = CGI.escape(pagee) # "/" などをエスケープ
-
-res = `wget -q -O - --header 'cookie: connect.sid=#{sid}' \"https://scrapbox.io/api/pages/#{project}/#{pagee}/text\"`
-res.split.each { | line |
-  while line.sub!(/gyazo.com\/([0-9a-fA-F]{32})/,'') do
-    id = $1
-    new_line = "https://scrapbox.io/#{project}/#{pagee}"
-    process(gyazo, id, new_line)
-  end
-}
