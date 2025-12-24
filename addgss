@@ -3,6 +3,7 @@
 # Scrapboxページ内のGyazo行を取得し、Scrapbox情報をGyazoページに書き出す
 #
 # % addgss project page
+# % addgss CosenseのJSONファイル
 #
 
 require 'gyazo'
@@ -11,17 +12,6 @@ require 'cgi'
 
 access_token = ENV['GYAZO_TOKEN'] # アクセストークン: .bash_profileに書いている
 gyazo = Gyazo::Client.new access_token: access_token
-
-config = {
-  project: 'GSS'
-}
-config_file = File.expand_path("~/.gss")
-if !File.exist?(config_file)
-  f = File.open(config_file,"w")
-  f.puts config.to_json
-else
-  config = JSON.parse(File.read(config_file))
-end
 
 #  
 # Gyazo gemに登録されていないAPI追加
@@ -48,6 +38,9 @@ module Gyazo
   end
 end
 
+#
+# Gyazoデータにdescに一行追加
+#
 def process(gyazo, id, new_line)
   desc = gyazo.get_desc image_id:id
   desclines = desc.split
@@ -68,6 +61,19 @@ if !ARGV[0]
   exit
 end
 
+config = {
+  project: 'GSS'
+}
+config_file = File.expand_path("~/.gss")
+
+if !File.exist?(config_file)
+  f = File.open(config_file,"w")
+  f.puts config.to_json
+else
+  config = JSON.parse(File.read(config_file))
+end
+
+
 project = ''
 jsonfile = false
 if ARGV[0] =~ /\.json$/
@@ -75,8 +81,20 @@ if ARGV[0] =~ /\.json$/
 else
   page = ARGV[0]
   project = ARGV[1]
+  if project
+    config['project'] = project
+    File.open(config_file,"w"){ |f|
+      f.puts config.to_json
+    }
+  end
+  config = JSON.parse(File.read(config_file))
   project = config['project'] unless project
 end
+
+skipid = 'fa86eb51d0779e5fb02abb'
+skipid = 'be475abebd8fcdc22ffb90c55d75cb66'
+skipid = 'd862'
+skip = true
 
 if jsonfile
   begin
@@ -96,18 +114,12 @@ if jsonfile
       while line.sub!(/gyazo.com\/([0-9a-f]+)/i,'') do
         id = $1
         puts "#{id} #{path}"
-        
-        process(gyazo, id, path)
 
-#desc = gyazo.get_desc image_id:id
-#        descs = desc.split
-#        if ! descs.include?(path)
-#          descs.push(path) # 既存のコメントにScrapboxのURLを追加
-#          newdesc = descs.join("\n")
-#          puts newdesc
-#          gyazo.set_desc image_id: id, desc: newdesc
-#          lines += 1
-#        end
+        process(gyazo, id, path) unless skip
+        
+        if id == skipid
+          skip = false
+        end
       end
     }
   }
@@ -124,7 +136,8 @@ else
   pagee = page.gsub(' ','%20')
   pagee = pagee.gsub('/','%2f')
   # pagee = CGI.escape(pagee) # "/" などをエスケープ
-  
+
+  # ScrapboxのAPIを使うのが面倒なのでwgetでテキストを取得
   res = `wget -q -O - --header 'cookie: connect.sid=#{sid}' \"https://scrapbox.io/api/pages/#{project}/#{pagee}/text\"`
   res.split.each { | line |
     while line.sub!(/gyazo.com\/([0-9a-fA-F]{32})/,'') do
