@@ -23,7 +23,10 @@ const query = document.querySelector('.form-control').value;
 var GYAZO_TOKEN = await GM.getValue("GYAZO_TOKEN");
 if(GYAZO_TOKEN == undefined || query == ''){
     var s = prompt('GYAZO TOKENを入力してください');
-    if (s) GM.setValue("GYAZO_TOKEN",GYAZO_TOKEN);
+    if (s){
+        GM.setValue("GYAZO_TOKEN",s);
+        GYAZO_TOKEN = s;
+    }
     return;
 }
 
@@ -70,15 +73,12 @@ win.document.body.append(h1);
 h1.textContent = `「${query}」検索結果 on /${projectname}`
 
 const ul = win.document.createElement('ul');
-//const li = win.document.createElement('li');
 
 win.document.body.append(ul);
 
 console.log(data);
 
 data.forEach((element) => {
-    console.log(element);
-
     var li = win.document.createElement('li');
     ul.append(li);
 
@@ -100,13 +100,10 @@ data.forEach((element) => {
             let url = `https://scrapbox.io/${projectname}/${page}`;
             var a = win.document.createElement('a');
             a.href = url;
-            var span = win.document.createElement('span');
-            span.textContent = page;
-            a.append(span);
+            a.textContent = page;
             var li2 = win.document.createElement('li');
             li2.append(a);
             ul2.append(li2);
-
          }
        }
     )

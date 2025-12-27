@@ -3,8 +3,11 @@
 # Scrapboxページ内のGyazo行を取得し、Scrapbox情報をGyazoページに書き出す
 #
 # % addgss project page
-# % addgss CosenseのJSONファイル
+# % addgss CosenseのJSONファイル [maxline]
 #
+
+# Issues
+# 新しいページだけ情報追加とか
 
 require 'gyazo'
 require 'json'
@@ -76,8 +79,10 @@ end
 
 project = ''
 jsonfile = false
+maxline = nil
 if ARGV[0] =~ /\.json$/
   jsonfile = ARGV[0]
+  maxline = ARGV[1]
 else
   page = ARGV[0]
   project = ARGV[1]
@@ -91,10 +96,11 @@ else
   project = config['project'] unless project
 end
 
-skipid = 'fa86eb51d0779e5fb02abb'
-skipid = 'be475abebd8fcdc22ffb90c55d75cb66'
+#skipid = 'fa86eb51d0779e5fb02abb'
+#skipid = 'be475abebd8fcdc22ffb90c55d75cb66'
 skipid = 'd862'
-skip = true
+#skip = true
+skip = false
 
 if jsonfile
   begin
@@ -103,6 +109,14 @@ if jsonfile
     STDERR.puts "#{jsonfile} not found"
     exit
   end
+
+  # pagesを時刻でソート
+  pages = json['pages']
+  pages = pages.sort { |a, b|
+    b['updated'] <=> a['updated']
+  }
+  json['pages'] = pages
+  
   project = json['name']
   lines = 0
   json['pages'].each { |page|
@@ -119,6 +133,11 @@ if jsonfile
         
         if id == skipid
           skip = false
+        end
+
+        lines += 1
+        if maxline && maxline.to_i < lines
+          exit
         end
       end
     }
