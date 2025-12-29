@@ -12,8 +12,6 @@
 // @grant        GM.getValue
 // ==/UserScript==
 
-// gss2.jsをChatGPTに直してもらったもの
-
 /**
  * Gyazoでキーワード検索してから、その画像がCosense(Scrapbox)に含まれているかチェックする
  */
@@ -147,7 +145,13 @@
 
     for (const element of hits) {
       const imageId = element?.query?.words?.[0];
-      const pageTitle = element?.pages?.[0]?.title;
+      // いちばん長いタイトルを選ぶ
+      var pageTitle = '';
+      for (const page of element.pages){
+          if (page.title.length > pageTitle.length){
+              pageTitle = page.title;
+          }
+      }
       if (!imageId || !pageTitle) continue;
 
       const li = ui.doc.createElement('li');
