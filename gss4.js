@@ -169,7 +169,8 @@
 
       const gyazoData = (await gyazoRes.json()) ?? [];
       if (!Array.isArray(gyazoData) || gyazoData.length === 0) {
-        const ui = openResultWindow(`「${query}」検索結果 on /${projectName}`);
+        //const ui = openResultWindow(`「${query}」検索結果 on /${projectName}`);
+        const ui = openResultWindow(`「${query}」検索結果 on ${document.title}`);
         if (ui) {
           ui.ul.insertAdjacentHTML(
             'beforebegin',
@@ -206,7 +207,8 @@
 
       progress.textContent = 'GSS3: 結果表示中…';
 
-      const titleText = `「${query}」検索結果 on /${projectName}`;
+      //const titleText = `「${query}」検索結果 on /${projectName}`;
+      const titleText = `「${query}」検索結果 on ${document.title}`;
       const ui = openResultWindow(titleText);
       if (!ui) return;
 
